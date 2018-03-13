@@ -1,0 +1,78 @@
+---
+title: "Regression Models Course Project"
+author: "suwei"
+date: "2018-3-13"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Executive Summary
+
+This is an report about the assignment of Coursera project: Regression Models. In the report, we explored dataset `mtcars` to answer two interested questions:  
+1. “Is an automatic or manual transmission better for MPG”  
+2. "Quantify the MPG difference between automatic and manual transmissions"  
+The answer is that:  
+1. In average, the `manual transmission` vehicles have a `7.245 greater MPG` than the `automatic transmission` vehicles (confirmed by t-test).  
+2. In our model, it shows that the `manual transmission` vehicles only have a `1.81 MPG greater` than `automatic transmission` vehicles.  
+
+## Exploratory Analysis
+
+```{r Exploratory Analysis}
+library(ggplot2)
+data("mtcars")
+head(mtcars)
+
+col_name <- c('cyl', 'vs', 'am', 'gear', 'carb')
+mtcars[col_name] <- lapply(mtcars[col_name] , factor)
+
+automatic <- mtcars[mtcars$am == 0,]
+manual <- mtcars[mtcars$am == 1,]
+```
+
+As you can see, in `Appendix Plot 1`, `automatic trasmission` vehicles are having a lower `MPG` than `manual transmission`. So we considered it as our hypothesis, and use t-test to confirmed it. 
+
+```{r t-test}
+test <- t.test(manual$mpg, automatic$mpg)
+```
+
+The p-value of the test is ```r test$p.value```, so the test rejects the null hypothesis that there is no difference between `manual transmission` and `automatic transmission`. The `manual transmission` vehicles have a `r test$estimate[1]-test$estimate[2]` greater MPG than the `automatic transmission` vehicles.
+
+Next, let's quantify the MPG difference between `automatic transmissions` and `manual transmissions`.
+```{r build model, results=FALSE}
+model_all <- lm(mpg ~., data = mtcars)
+model_best <- step(model_all)
+```
+
+```{r show model}
+summary(model_best)
+```
+First, we use all the variables except `mpg` to build a liner model, and than use the `step()` function to find the best one. It seems that when using variables: `cyl`, `hp`, `wt`, `am` to build a model, we can get the best model which it's AIC is the lowest one. The R-squared value is 0.8659 confirmes that this model explain 86.59% of the variance in MPG. Also the extremely small p-value shows the model is statistically significant. As a result, the `manual transmission` vehicles only have a `1.81 MPG greater` than `automatic transmission` vehicles.
+
+Last, let's check do the residual diagnostics part. As you can see, in `Appendix Plot 2`:  
+1. From the **Residuals vs Fitted** plot.  
+2. From the **Normal Q-Q** plot, residuals are followed the normal distribution.  
+3. From the **Scale-Location** plot, random distribution of residuals confirms that the variance is almost a constant value.  
+4. From the **Residuals vs Leverage** plot, no high leverage point exsit.
+
+## Conclusion
+MPG difference exsit between `manual transmission` vehicles and `automatic transmission` vehicles. A `manual transmission` vehicles have 1.81 MPG greater than `automatic transmission` vehicles.
+
+## Appendix
+```{r Appendix 1}
+box_plot <- ggplot(data = mtcars, aes(x = am, y = mpg)) + geom_boxplot()
+box_plot <- box_plot + geom_jitter() + theme_classic()
+box_plot <- box_plot + ggtitle("Boxplot of MPG by transmission type", subtitle = "Appendix Plot 1") + xlab("Transmission Type") + ylab("Miles Per Gallon") + scale_x_discrete(labels=c("1" = "Manual", "0" = "Automatic"))
+box_plot
+```
+
+Appendix Plot 2
+```{r Appendix 2}
+par(mfrow = c(2,2))
+plot(model_best)
+```
